@@ -44,7 +44,7 @@
   };
   document.body.appendChild(f);
 
-  var ALLOWED = { playVideo: 1, pauseVideo: 1, mute: 1, unMute: 1, setVolume: 1, stopVideo: 1, unloadModule: 1 };
+  var ALLOWED = { playVideo: 1, pauseVideo: 1, mute: 1, unMute: 1, setVolume: 1, stopVideo: 1, unloadModule: 1, setOption: 1 };
 
   window.addEventListener('message', function (e) {
     if (e.source === f.contentWindow) {
