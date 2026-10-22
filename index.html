@@ -33,7 +33,13 @@
   f.setAttribute('referrerpolicy', 'strict-origin-when-cross-origin');
   f.src = YT + '/embed/' + v + '?autoplay=1&controls=0&rel=0&modestbranding=1&playsinline=1&iv_load_policy=3' +
     '&disablekb=1&fs=0&enablejsapi=1&mute=1&hl=es&cc_load_policy=0&origin=' + encodeURIComponent(location.origin);
+  function tell(info) {
+    try { window.parent.postMessage(JSON.stringify({ event: 'mavc', info: info }), '*'); } catch (e0) { /* nada */ }
+  }
+  tell('wrapper');
+  window.addEventListener('error', function (ev) { tell('err:' + String(ev && ev.message).slice(0, 60)); });
   f.onload = function () {
+    tell('yt-loaded');
     try { f.contentWindow.postMessage(JSON.stringify({ event: 'listening', id: 1, channel: 'widget' }), YT); } catch (e) { /* nada */ }
   };
   document.body.appendChild(f);
