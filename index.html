@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>MAVC Player</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="referrer" content="strict-origin-when-cross-origin">
+<style>
+  html, body { margin: 0; height: 100%; background: #000; overflow: hidden; }
+  iframe { position: fixed; left: 0; top: 0; width: 100%; height: 100%; border: 0; background: #000; }
+</style>
+</head>
+<body>
+<script>
+/*
+ * Página puente del reproductor de tráilers de MAVC Launcher.
+ * YouTube no deja incrustar sus vídeos en una app que se abre desde un archivo local (error 153): exige que
+ * quien incrusta tenga una dirección web real. Esta página es esa dirección: el launcher la abre en un iframe
+ * y ella incrusta el vídeo oficial de YouTube. Solo reenvía los eventos de YouTube al launcher y unas pocas
+ * órdenes del launcher a YouTube (pausa, sonido). No guarda ni envía datos de nadie.
+ *
+ * Uso: index.html?v=<id de vídeo de 11 caracteres>
+ */
+(function () {
+  'use strict';
+  var YT = 'https://www.youtube.com';
+  var q = new URLSearchParams(location.search);
+  var v = q.get('v') || '';
+  if (!/^[A-Za-z0-9_-]{11}$/.test(v)) { return; }
+
+  var f = document.createElement('iframe');
+  f.allow = 'autoplay; encrypted-media';
+  f.setAttribute('referrerpolicy', 'strict-origin-when-cross-origin');
+  f.src = YT + '/embed/' + v + '?autoplay=1&controls=0&rel=0&modestbranding=1&playsinline=1&iv_load_policy=3' +
+    '&disablekb=1&fs=0&enablejsapi=1&mute=1&hl=es&cc_load_policy=0&origin=' + encodeURIComponent(location.origin);
+  f.onload = function () {
+    try { f.contentWindow.postMessage(JSON.stringify({ event: 'listening', id: 1, channel: 'widget' }), YT); } catch (e) { /* nada */ }
+  };
+  document.body.appendChild(f);
+
+  var ALLOWED = { playVideo: 1, pauseVideo: 1, mute: 1, unMute: 1, setVolume: 1, stopVideo: 1 };
+
+  window.addEventListener('message', function (e) {
+    if (e.source === f.contentWindow) {
+      // De YouTube hacia el launcher.
+      try { window.parent.postMessage(typeof e.data === 'string' ? e.data : JSON.stringify(e.data), '*'); } catch (err) { /* nada */ }
+      return;
+    }
+    if (e.source === window.parent) {
+      // Del launcher hacia YouTube: solo órdenes de la lista.
+      var d = null;
+      try { d = typeof e.data === 'string' ? JSON.parse(e.data) : e.data; } catch (err2) { d = null; }
+      if (d && d.event === 'command' && ALLOWED[d.func]) {
+        try { f.contentWindow.postMessage(JSON.stringify({ event: 'command', func: d.func, args: d.args || '' }), YT); } catch (err3) { /* nada */ }
+      }
+    }
+  });
+})();
+</script>
+</body>
+</html>
