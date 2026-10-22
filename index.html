@@ -32,7 +32,7 @@
   f.allow = 'autoplay; encrypted-media';
   f.setAttribute('referrerpolicy', 'strict-origin-when-cross-origin');
   f.src = YT + '/embed/' + v + '?autoplay=1&controls=0&rel=0&modestbranding=1&playsinline=1&iv_load_policy=3' +
-    '&disablekb=1&fs=0&enablejsapi=1&mute=1&hl=es&cc_load_policy=0&origin=' + encodeURIComponent(location.origin);
+    '&disablekb=1&fs=0&enablejsapi=1&mute=1&hl=es&cc_load_policy=0&cc_lang_pref=zz&origin=' + encodeURIComponent(location.origin);
   function tell(info) {
     try { window.parent.postMessage(JSON.stringify({ event: 'mavc', info: info }), '*'); } catch (e0) { /* nada */ }
   }
@@ -44,7 +44,7 @@
   };
   document.body.appendChild(f);
 
-  var ALLOWED = { playVideo: 1, pauseVideo: 1, mute: 1, unMute: 1, setVolume: 1, stopVideo: 1 };
+  var ALLOWED = { playVideo: 1, pauseVideo: 1, mute: 1, unMute: 1, setVolume: 1, stopVideo: 1, unloadModule: 1 };
 
   window.addEventListener('message', function (e) {
     if (e.source === f.contentWindow) {
