@@ -32,7 +32,7 @@
   f.allow = 'autoplay; encrypted-media';
   f.setAttribute('referrerpolicy', 'strict-origin-when-cross-origin');
   f.src = YT + '/embed/' + v + '?autoplay=1&controls=0&rel=0&modestbranding=1&playsinline=1&iv_load_policy=3' +
-    '&disablekb=1&fs=0&enablejsapi=1&mute=1&hl=es&cc_load_policy=0&cc_lang_pref=zz&origin=' + encodeURIComponent(location.origin);
+    '&disablekb=1&fs=0&enablejsapi=1&mute=1&hl=es&cc_load_policy=0&cc_lang_pref=zz&vq=hd1080&origin=' + encodeURIComponent(location.origin);
   function tell(info) {
     try { window.parent.postMessage(JSON.stringify({ event: 'mavc', info: info }), '*'); } catch (e0) { /* nada */ }
   }
@@ -44,10 +44,36 @@
   };
   document.body.appendChild(f);
 
-  var ALLOWED = { playVideo: 1, pauseVideo: 1, mute: 1, unMute: 1, setVolume: 1, stopVideo: 1, unloadModule: 1, setOption: 1 };
+
+  // Calidad alta todo el tiempo: pide 1080p fijo (YouTube por su cuenta suele bajar a 360-720p al empezar).
+  // YouTube informa la calidad real en cada "infoDelivery"; si baja de 1080p, se vuelve a pedir (como mucho cada 1,5 s).
+  var GOOD = { hd1080: 1, hd1440: 1, hd2160: 1, highres: 1 };
+  var lastAsk = 0;
+  function askQuality() {
+    lastAsk = Date.now();
+    try {
+      var w = f.contentWindow;
+      w.postMessage(JSON.stringify({ event: 'command', func: 'setPlaybackQualityRange', args: ['hd1080', 'hd1080'] }), YT);
+      w.postMessage(JSON.stringify({ event: 'command', func: 'setPlaybackQuality', args: ['hd1080'] }), YT);
+    } catch (eq) { /* nada */ }
+  }
+  [1200, 2500, 4500, 8000].forEach(function (ms) { setTimeout(askQuality, ms); });
+  function watchQuality(data) {
+    var d = null;
+    try { d = typeof data === 'string' ? JSON.parse(data) : data; } catch (ep) { return; }
+    if (!d) { return; }
+    if (d.event === 'onStateChange' && (d.info === 1 || d.info === 3)) { if (Date.now() - lastAsk > 1500) { askQuality(); } }
+    var q2 = d.info && d.info.playbackQuality;
+    if (q2) {
+      tell('q:' + q2);
+      if (!GOOD[q2] && Date.now() - lastAsk > 1500) { askQuality(); }
+    }
+  }
+  var ALLOWED = { playVideo: 1, pauseVideo: 1, mute: 1, unMute: 1, setVolume: 1, stopVideo: 1, unloadModule: 1, setOption: 1, setPlaybackQuality: 1, setPlaybackQualityRange: 1 };
 
   window.addEventListener('message', function (e) {
     if (e.source === f.contentWindow) {
+      watchQuality(e.data);
       // De YouTube hacia el launcher.
       try { window.parent.postMessage(typeof e.data === 'string' ? e.data : JSON.stringify(e.data), '*'); } catch (err) { /* nada */ }
       return;
